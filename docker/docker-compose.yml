@@ -11,7 +11,8 @@ services:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?}
       MARIADB_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?}
     volumes:
-      - mariadb-data:/var/lib/mysql
+      # v2: force a fresh volume so Coolify stops reusing a DB initialized with an old root password
+      - mariadb-data-v2:/var/lib/mysql
     healthcheck:
       test: ["CMD-SHELL", "pidof mariadbd"]
       interval: 10s
@@ -41,7 +42,8 @@ services:
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin}
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?}
     volumes:
-      - frappe-data:/home/frappe/data
+      # v2: pair with new DB volume so site/db stay in sync
+      - frappe-data-v2:/home/frappe/data
     expose:
       - "8000"
       - "9000"
@@ -54,8 +56,8 @@ services:
       - frappe-network
 
 volumes:
-  mariadb-data:
-  frappe-data:
+  mariadb-data-v2:
+  frappe-data-v2:
 
 networks:
   frappe-network:
