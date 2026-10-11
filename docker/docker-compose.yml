@@ -13,7 +13,6 @@ services:
     volumes:
       - mariadb-data:/var/lib/mysql
     healthcheck:
-      # Process check avoids auth noise and password/volume mismatches
       test: ["CMD-SHELL", "pidof mariadbd"]
       interval: 10s
       timeout: 5s
@@ -35,14 +34,14 @@ services:
     restart: unless-stopped
     working_dir: /home/frappe
     environment:
-      # Coolify: maps generated domain to container port 8000
+      # Coolify routes this service's public URL to container port 8000
       SERVICE_URL_FRAPPE_8000: /
       SHELL: /bin/bash
       SITE_NAME: ${SITE_NAME:?}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin}
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?}
     volumes:
-      - frappe-bench:/home/frappe/frappe-bench
+      - frappe-data:/home/frappe/data
     expose:
       - "8000"
       - "9000"
@@ -56,7 +55,7 @@ services:
 
 volumes:
   mariadb-data:
-  frappe-bench:
+  frappe-data:
 
 networks:
   frappe-network:
