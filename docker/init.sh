@@ -1,17 +1,22 @@
-#!bin/bash
+#!/bin/bash
+set -euo pipefail
 
-if [ -d "/home/frappe/frappe-bench/apps/frappe" ]; then
-    echo "Bench already exists, skipping init"
-    cd frappe-bench
-    bench start
-else
-    echo "Creating new bench..."
-fi
+SITE_NAME="${SITE_NAME:-education.localhost}"
+ADMIN_PASSWORD="${ADMIN_PASSWORD:-admin}"
+MYSQL_ROOT_PASSWORD="${MYSQL_ROOT_PASSWORD:-123}"
 
 export PATH="${NVM_DIR}/versions/node/v${NODE_VERSION_DEVELOP}/bin/:${PATH}"
 
-bench init --skip-redis-config-generation frappe-bench
+if [ -d "/home/frappe/frappe-bench/apps/frappe" ]; then
+	echo "Bench already exists, starting..."
+	cd /home/frappe/frappe-bench
+	bench use "${SITE_NAME}" || true
+	exec bench start
+fi
 
+echo "Creating new bench for site: ${SITE_NAME}"
+
+bench init --skip-redis-config-generation frappe-bench
 cd frappe-bench
 
 # Use containers instead of localhost
@@ -27,17 +32,17 @@ sed -i '/watch/d' ./Procfile
 bench get-app erpnext
 bench get-app education
 
-bench new-site education.localhost \
---force \
---mariadb-root-password 123 \
---admin-password admin \
---no-mariadb-socket
+bench new-site "${SITE_NAME}" \
+	--force \
+	--mariadb-root-password "${MYSQL_ROOT_PASSWORD}" \
+	--admin-password "${ADMIN_PASSWORD}" \
+	--no-mariadb-socket
 
-bench --site education.localhost install-app erpnext
-bench --site education.localhost install-app education
-bench --site education.localhost set-config developer_mode 1
-bench --site education.localhost enable-scheduler
-bench --site education.localhost clear-cache
-bench use education.localhost
+bench --site "${SITE_NAME}" install-app erpnext
+bench --site "${SITE_NAME}" install-app education
+bench --site "${SITE_NAME}" set-config developer_mode 1
+bench --site "${SITE_NAME}" enable-scheduler
+bench --site "${SITE_NAME}" clear-cache
+bench use "${SITE_NAME}"
 
-bench start
+exec bench start

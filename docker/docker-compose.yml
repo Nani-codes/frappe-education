@@ -1,41 +1,60 @@
-version: '3.7'
-name: education
 services:
   mariadb:
     image: mariadb:10.8
+    restart: unless-stopped
     command:
       - --character-set-server=utf8mb4
       - --collation-server=utf8mb4_unicode_ci
       - --skip-character-set-client-handshake
-      - --skip-innodb-read-only-compressed # Temporary fix for MariaDB 10.6
+      - --skip-innodb-read-only-compressed
     environment:
-      MYSQL_ROOT_PASSWORD: 123
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?}
     volumes:
       - mariadb-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
     networks:
       - frappe-network
 
   redis:
     image: redis:alpine
+    restart: unless-stopped
     networks:
       - frappe-network
 
   frappe:
-    image: frappe/bench:latest
-    command: bash /workspace/init.sh
-    environment:
-      - SHELL=/bin/bash
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
     working_dir: /home/frappe
+    environment:
+      # Coolify: maps generated domain to container port 8000
+      SERVICE_URL_FRAPPE_8000: /
+      SHELL: /bin/bash
+      SITE_NAME: ${SITE_NAME:?}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?}
     volumes:
-      - .:/workspace
-    ports:
-      - 8000:8000
-      - 9000:9000
+      - frappe-bench:/home/frappe/frappe-bench
+    expose:
+      - "8000"
+      - "9000"
+    depends_on:
+      mariadb:
+        condition: service_healthy
+      redis:
+        condition: service_started
     networks:
       - frappe-network
 
 volumes:
   mariadb-data:
+  frappe-bench:
 
 networks:
   frappe-network:
