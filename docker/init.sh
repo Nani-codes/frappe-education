@@ -16,22 +16,44 @@ ADMIN_PASSWORD="${ADMIN_PASSWORD:-admin}"
 MYSQL_ROOT_PASSWORD="${MYSQL_ROOT_PASSWORD:-123}"
 NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
 NODE_VERSION_DEVELOP="${NODE_VERSION_DEVELOP:-18}"
+BENCH_DIR="/home/frappe/frappe-bench"
 
 if [ -d "${NVM_DIR}/versions/node/v${NODE_VERSION_DEVELOP}/bin" ]; then
 	export PATH="${NVM_DIR}/versions/node/v${NODE_VERSION_DEVELOP}/bin:${PATH}"
 fi
 
-if [ -d "/home/frappe/frappe-bench/apps/frappe" ]; then
+bench_ready() {
+	[ -d "${BENCH_DIR}/apps/frappe" ] && [ -f "${BENCH_DIR}/sites/common_site_config.json" ]
+}
+
+if bench_ready; then
 	echo "Bench already exists, starting..."
-	cd /home/frappe/frappe-bench
+	cd "${BENCH_DIR}"
 	bench use "${SITE_NAME}" || true
 	exec bench start
 fi
 
 echo "Creating new bench for site: ${SITE_NAME}"
 
-bench init --skip-redis-config-generation frappe-bench
-cd frappe-bench
+# Named volume is mounted at BENCH_DIR, so the path always exists and
+# `bench init frappe-bench` fails. Init to a temp dir, then copy in.
+find "${BENCH_DIR}" -mindepth 1 -delete 2>/dev/null || true
+rm -rf /home/frappe/frappe-bench-tmp
+
+cd /home/frappe
+bench init --skip-redis-config-generation frappe-bench-tmp
+
+shopt -s dotglob
+mv frappe-bench-tmp/* "${BENCH_DIR}/"
+rmdir frappe-bench-tmp
+shopt -u dotglob
+
+cd "${BENCH_DIR}"
+
+mkdir -p sites
+if [ ! -f sites/common_site_config.json ]; then
+	echo '{}' > sites/common_site_config.json
+fi
 
 # Use containers instead of localhost
 bench set-mariadb-host mariadb
