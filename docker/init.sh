@@ -81,11 +81,16 @@ fi
 
 if ! site_ready; then
 	echo "Creating site ${SITE_NAME}..."
-	bench new-site "${SITE_NAME}" \
+	if ! bench new-site "${SITE_NAME}" \
 		--force \
 		--mariadb-root-password "${MYSQL_ROOT_PASSWORD}" \
 		--admin-password "${ADMIN_PASSWORD}" \
-		--no-mariadb-socket
+		--no-mariadb-socket; then
+		echo "FATAL: MariaDB root password rejected."
+		echo "Coolify → stop app → Persistent Storage → delete volume '*_mariadb-data'"
+		echo "Then redeploy. Do not change MYSQL_ROOT_PASSWORD after first successful DB init."
+		exit 1
+	fi
 
 	bench --site "${SITE_NAME}" install-app erpnext
 	bench --site "${SITE_NAME}" install-app education
