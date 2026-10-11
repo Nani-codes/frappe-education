@@ -37,16 +37,17 @@ echo "Creating new bench for site: ${SITE_NAME}"
 
 # Named volume is mounted at BENCH_DIR, so the path always exists and
 # `bench init frappe-bench` fails. Init to a temp dir, then copy in.
+# entrypoint.sh chowns BENCH_DIR to frappe before we run.
 find "${BENCH_DIR}" -mindepth 1 -delete 2>/dev/null || true
 rm -rf /home/frappe/frappe-bench-tmp
 
 cd /home/frappe
 bench init --skip-redis-config-generation frappe-bench-tmp
 
-shopt -s dotglob
-mv frappe-bench-tmp/* "${BENCH_DIR}/"
-rmdir frappe-bench-tmp
-shopt -u dotglob
+shopt -s dotglob nullglob
+cp -a frappe-bench-tmp/. "${BENCH_DIR}/"
+rm -rf frappe-bench-tmp
+shopt -u dotglob nullglob
 
 cd "${BENCH_DIR}"
 

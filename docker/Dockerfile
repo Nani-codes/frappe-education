@@ -1,11 +1,10 @@
 FROM frappe/bench:latest
 
 USER root
-COPY init.sh /workspace/init.sh
-RUN chmod +x /workspace/init.sh \
-	&& chown frappe:frappe /workspace/init.sh
+COPY init.sh entrypoint.sh /workspace/
+RUN chmod +x /workspace/init.sh /workspace/entrypoint.sh \
+	&& mkdir -p /home/frappe/frappe-bench \
+	&& chown -R frappe:frappe /home/frappe/frappe-bench /workspace
 
-USER frappe
 WORKDIR /home/frappe
-
-CMD ["bash", "/workspace/init.sh"]
+ENTRYPOINT ["/workspace/entrypoint.sh"]
