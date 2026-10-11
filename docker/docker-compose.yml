@@ -9,10 +9,16 @@ services:
       - --skip-innodb-read-only-compressed
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?}
+      MARIADB_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?}
     volumes:
       - mariadb-data:/var/lib/mysql
     healthcheck:
-      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      # healthcheck.sh connects without a password; use mariadb-admin with the env password
+      test:
+        [
+          "CMD-SHELL",
+          "mariadb-admin ping -h 127.0.0.1 -uroot -p\"$$MYSQL_ROOT_PASSWORD\" --silent",
+        ]
       interval: 10s
       timeout: 5s
       retries: 10
