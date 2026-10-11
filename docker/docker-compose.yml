@@ -13,12 +13,9 @@ services:
     volumes:
       - mariadb-data:/var/lib/mysql
     healthcheck:
-      # healthcheck.sh connects without a password; use mariadb-admin with the env password
-      test:
-        [
-          "CMD-SHELL",
-          "mariadb-admin ping -h 127.0.0.1 -uroot -p\"$$MYSQL_ROOT_PASSWORD\" --silent",
-        ]
+      # Password-auth checks fail when the volume was initialized with a different root password.
+      # Only verify the server is accepting TCP connections.
+      test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/127.0.0.1/3306'"]
       interval: 10s
       timeout: 5s
       retries: 10

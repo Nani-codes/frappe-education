@@ -1,11 +1,25 @@
 #!/bin/bash
-set -euo pipefail
+set -eo pipefail
+
+# Non-interactive shells don't load .bashrc; pull nvm/node from the bench image if present
+if [ -f "$HOME/.bashrc" ]; then
+	# shellcheck disable=SC1091
+	source "$HOME/.bashrc" || true
+fi
+if [ -f "${NVM_DIR:-$HOME/.nvm}/nvm.sh" ]; then
+	# shellcheck disable=SC1091
+	source "${NVM_DIR:-$HOME/.nvm}/nvm.sh" || true
+fi
 
 SITE_NAME="${SITE_NAME:-education.localhost}"
 ADMIN_PASSWORD="${ADMIN_PASSWORD:-admin}"
 MYSQL_ROOT_PASSWORD="${MYSQL_ROOT_PASSWORD:-123}"
+NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
+NODE_VERSION_DEVELOP="${NODE_VERSION_DEVELOP:-18}"
 
-export PATH="${NVM_DIR}/versions/node/v${NODE_VERSION_DEVELOP}/bin/:${PATH}"
+if [ -d "${NVM_DIR}/versions/node/v${NODE_VERSION_DEVELOP}/bin" ]; then
+	export PATH="${NVM_DIR}/versions/node/v${NODE_VERSION_DEVELOP}/bin:${PATH}"
+fi
 
 if [ -d "/home/frappe/frappe-bench/apps/frappe" ]; then
 	echo "Bench already exists, starting..."
